@@ -1,30 +1,62 @@
-name: BEI Daily Predictor Bot
+# ============================================================
+#  SmartAlpha Predictor v3.6 — GitHub Actions Workflow
+#  File: .github/workflows/smartalpha.yml
+# ============================================================
+#
+#  Setup:
+#    1. Letakkan file ini di .github/workflows/smartalpha.yml
+#    2. Set Repository Secrets (Settings → Secrets → Actions):
+#       - TELEGRAM_TOKEN   : token dari @BotFather
+#       - TELEGRAM_CHAT_ID : chat ID kamu (dari @userinfobot)
+#    3. Pastikan main.py dan requirements.txt ada di root repo
+#
+#  Schedule:
+#    Berjalan otomatis Senin–Jumat jam 16:10 WIB (09:10 UTC).
+#    Bisa juga dijalankan manual via "Run workflow" di tab Actions.
+# ============================================================
+
+name: SmartAlpha Daily Run
 
 on:
   schedule:
-    # 09:10 UTC = 16:10 WIB (Senin-Jumat)
-    - cron: '10 9 * * 1-5'
+    # 09:10 UTC = 16:10 WIB (Senin–Jumat)
+    - cron: "10 9 * * 1-5"
+
+  # Aktifkan trigger manual untuk testing
   workflow_dispatch:
 
 jobs:
   run-bot:
+    name: Run SmartAlpha Predictor
     runs-on: ubuntu-latest
+    timeout-minutes: 60   # Timeout 60 menit (untuk 275 saham)
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: "pip"
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Bot
+      - name: Run SmartAlpha Bot
         env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_TOKEN:   ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python main.py
+        run: |
+          python main.py
+
+      - name: Upload log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-log-${{ github.run_id }}
+          path: "*.log"
+          retention-days: 7
